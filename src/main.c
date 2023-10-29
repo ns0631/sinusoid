@@ -22,23 +22,42 @@ static const struct pwm_dt_spec phase_2 = PWM_DT_SPEC_GET(DT_NODELABEL(phase_2))
 static const struct pwm_dt_spec phase_3 = PWM_DT_SPEC_GET(DT_NODELABEL(phase_3));
 
 static const uint32_t min_pulse = PWM_USEC(0);
-static const uint32_t max_pulse = PWM_USEC(90);
+static const uint32_t max_pulse = PWM_USEC(95);
+static const uint32_t midpoint = PWM_USEC(50);
 
 uint64_t start_time, end_time, total_ns;
 
 double dt = 0;
-double freq = 0;
+float sine_freq = 100;
+uint64_t pwm_freq = 10000;
+uint64_t counter = 0;
 
-int counter = 0;
+void spin(){
+	end_time = k_uptime_ticks();
 
-void spin(double angle){
+    double dt = (end_time - start_time) / 10000000.;
+
+	start_time = end_time;
+
+	double scale = sine_freq / (double) pwm_freq * 2 * PI;
+	float angle = scale * counter;
+
+	if(counter % (uint64_t) (pwm_freq / sine_freq) == 0){
+		counter = 0;
+	}
+
 	int index1 = round( ( 100 * angle ) );
 	int index2 = round( ( 100 * ( angle + 2 * PI / 3. ) ) );
 	int index3 = round( ( 100 * ( angle + 4 * PI / 3. ) ) );
 
-	uint32_t pulse_width_1 = ( sin_table[index1] + 1) * (double) ( max_pulse - min_pulse ) / 2.;
-	uint32_t pulse_width_2 = ( sin_table[index2] + 1) * (double) ( max_pulse - min_pulse ) / 2.;
-	uint32_t pulse_width_3 = ( sin_table[index3] + 1) * (double) ( max_pulse - min_pulse ) / 2.;
+	uint32_t pulse_width_1 = ( sin_table[index1] ) * (double) ( max_pulse - midpoint ) + midpoint;
+	uint32_t pulse_width_2 = ( sin_table[index2] ) * (double) ( max_pulse - midpoint ) + midpoint;
+	uint32_t pulse_width_3 = ( sin_table[index3] ) * (double) ( max_pulse - midpoint ) + midpoint;
+
+	if(counter == 0){
+		//printf("Frequency: %" PRIu64 " Hz \n", pwm_freq);
+		printf("PWM Frequency: %lf; %" PRIu32 "; %" PRIu32 "; %" PRIu32 "\n", 1. / dt, pulse_width_1, pulse_width_2, pulse_width_3);
+	}
 
 	int ret = pwm_set_pulse_dt(&phase_1, PWM_NSEC(pulse_width_1));
 	if (ret < 0) {
@@ -54,26 +73,13 @@ void spin(double angle){
 	if (ret < 0) {
 		printk("Error %d: failed to set pulse width for phase 3\n", ret);
 	}
+
+	counter++;
 }
 
 void my_work_handler(struct k_work *work)
 {
-	end_time = k_uptime_ticks();
-
-    double dt = (end_time - start_time) / 10000000.;
-
-    freq = 1. / dt;
-
-    if(counter % 100 == 0){
-		counter = 0;
-		printf("Frequency: %" PRIu64 " Hz \n", (uint64_t) freq);
-	}
-	
-	start_time = end_time;
-
-    spin(0);
-
-    counter++;
+    spin();
 }
 
 K_WORK_DEFINE(my_work, my_work_handler);
@@ -95,7 +101,7 @@ int main(){
     start_time = k_uptime_ticks();
 
 	/* start periodic timer that expires once every second */
-	k_timer_start(&my_timer, K_USEC(100), K_USEC(100));
+	k_timer_start(&my_timer, K_USEC(1000000 / pwm_freq), K_USEC(1000000 / pwm_freq));
 
 	return 0;
 }
