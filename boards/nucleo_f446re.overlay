@@ -1,0 +1,42 @@
+/ {
+     phase_1: spwm1 {
+          compatible = "pwm-brushless";
+          pwms = <&pwm1 1 PWM_USEC(99) PWM_POLARITY_NORMAL>;
+          min-pulse = <PWM_USEC(0)>;
+          max-pulse = <PWM_USEC(90)>;
+     };
+
+     phase_2: spwm2 {
+          compatible = "pwm-brushless";
+          pwms = <&pwm2 3 PWM_USEC(99) PWM_POLARITY_NORMAL>;
+          min-pulse = <PWM_USEC(0)>;
+          max-pulse = <PWM_USEC(90)>;
+     };
+
+     phase_3: spwm3 {
+          compatible = "pwm-brushless";
+          pwms = <&pwm3 4 PWM_USEC(99) PWM_POLARITY_NORMAL>;
+          min-pulse = <PWM_USEC(0)>;
+          max-pulse = <PWM_USEC(90)>;
+     };
+};
+
+&timers3{
+     pwm1: pwm {
+          status = "okay";
+          pinctrl-0 = <&tim3_ch1_pc6>;
+          pinctrl-names = "default";
+     };
+
+     pwm2: pwm {
+          status = "okay";
+          pinctrl-0 = <&tim3_ch3_pc8>;
+          pinctrl-names = "default";
+     };
+
+     pwm3: pwm {
+          status = "okay";
+          pinctrl-0 = <&tim3_ch4_pc9>;
+          pinctrl-names = "default";
+     };
+};
